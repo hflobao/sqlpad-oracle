@@ -35,3 +35,17 @@ Maintenance releases and bugfixes guaranteed through 2021.
 ## License
 
 MIT
+
+## Connecting to Oracle Databases using ODBC connection string
+
+On the "ODBC connection string" field, provide the following:
+Driver={Oracle 21 ODBC driver}; dbq=<address>:<port>/<service_name>
+
+On the "Database SQL for lookup schema" field, input the following query:
+select 
+  t.owner table_schema, 
+  t.table_name table_name, 
+  c.column_name column_name, 
+  c.data_type data_type
+from all_tables t inner join all_tab_columns c 
+on t.owner = c.owner and t.table_name = c.table_name
