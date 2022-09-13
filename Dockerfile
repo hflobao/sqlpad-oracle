@@ -1,7 +1,7 @@
 # Need to remote into this image and debug some flow? 
 # docker run -it --rm node:12.22.1-alpine3.12 /bin/ash
 FROM node:lts-buster AS build
-ARG ODBC_ENABLED=false
+ARG ODBC_ENABLED=true
 RUN apt-get update && apt-get install -y \
     python3 make g++ python3-dev  \
     && ( \
@@ -61,10 +61,21 @@ RUN npm run lint
 WORKDIR /sqlpad/server
 RUN npm prune --production
 
+# Download & Unpack oracle stuff in a seperate image this reduces the amount of downloads if you change the script around
+RUN apt-get install -y unzip wget \
+    && echo "Downloading Oracle Instant Client lite and ODBC drivers." 1>&2 \
+    && wget -q -O /opt/client.zip https://download.oracle.com/otn_software/linux/instantclient/211000/instantclient-basiclite-linux.x64-21.1.0.0.0.zip \
+    && wget -q -O /opt/odbc.zip https://download.oracle.com/otn_software/linux/instantclient/211000/instantclient-odbc-linux.x64-21.1.0.0.0.zip
+    
+RUN cd /opt \
+    && unzip -q client.zip \
+    && unzip -q odbc.zip \
+    && rm client.zip odbc.zip
+
 # Start another stage with a fresh node
 # Copy the server directory that has all the necessary node modules + front end build
 FROM node:lts-buster-slim as bundle
-ARG ODBC_ENABLED=false
+ARG ODBC_ENABLED=true
 
 # Create a directory for the hooks and optionaly install ODBC
 RUN mkdir -p /etc/docker-entrypoint.d \
@@ -82,6 +93,13 @@ RUN mkdir -p /etc/docker-entrypoint.d \
 WORKDIR /usr/app
 COPY --from=build /sqlpad/docker-entrypoint /
 COPY --from=build /sqlpad/server .
+COPY --from=build /opt /opt
+
+# Setup some oracle variables
+ENV TNS_ADMIN=/opt/instantclient_21_1/network/admin
+ENV LD_LIBRARY_PATH=/opt/instantclient_21_1
+# Install the driver for oracle into ODBC.
+RUN cd /opt/instantclient_21_1 && /opt/instantclient_21_1/odbc_update_ini.sh /
 
 ENV NODE_ENV production
 ENV SQLPAD_DB_PATH /var/lib/sqlpad
@@ -95,11 +113,3 @@ ENTRYPOINT ["/docker-entrypoint"]
 
 RUN ["chmod", "+x", "/docker-entrypoint"]
 WORKDIR /var/lib/sqlpad
-
-# If you want to use ODBC, use `docker build -t sqlpad/sqlpad-odbc --build-arg ODBC_ENABLED=true .`
-# That will create an image with ODBC enabled.
-#
-# Then add specific ODBC drivers.
-# Option 1: extend this Dockerfile in a fork.
-# Option 2: create your own that starts `FROM sqlpad/sqlpad-odbc` and add drivers there.
-#           Note: this is currently not available on dockerhub so you must use the build command to provision it locally.
