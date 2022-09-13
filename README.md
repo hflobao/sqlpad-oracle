@@ -39,7 +39,7 @@ MIT
 ## Connecting to Oracle Databases using ODBC connection string
 
 On the "ODBC connection string" field, provide the following:
-Driver={Oracle 21 ODBC driver}; dbq=<address>:<port>/<service_name>
+Driver={Oracle 21 ODBC driver}; dbq=<<address>>:<<port>>/<<service_name>>
 
 On the "Database SQL for lookup schema" field, input the following query:
 select 
