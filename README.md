@@ -41,7 +41,7 @@ MIT
 On the "ODBC connection string" field, provide the following:
 
 ```
-Driver={Oracle 21 ODBC driver}; dbq=\<address\>:\<port\>/\<service_name\>
+Driver={Oracle 21 ODBC driver}; dbq=<address>:<port>/<service_name>
 ```
 
 On the "Database SQL for lookup schema" field, input the following query:
